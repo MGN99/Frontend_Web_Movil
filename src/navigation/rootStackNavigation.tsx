@@ -1,28 +1,43 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import HomeScreen from '../screens/HomeScreen';
-import LoginScreen from '../screens/LoginScreen';
+import LoginScreen from '../screens/Auth/LoginScreen';
+import HomeScreen from '../screens/Common/HomeScreen';
+import InitialScreen from '../screens/InitialScreen';
 
 export type RootStackParamList = {
+  Initial: Record<string, string> | undefined;
   Login: Record<string, string> | undefined;
   Home: Record<string, string> | undefined;
 };
 
-const AuthStack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const RootStackNavigation = () => {
   return (
     <NavigationContainer>
-      <AuthStack.Navigator
-        id="Auth"
-        initialRouteName="Login"
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        <AuthStack.Screen name="Login" component={LoginScreen} />
-        <AuthStack.Screen name="Home" component={HomeScreen} />
-      </AuthStack.Navigator>
+      <Stack.Navigator initialRouteName="Initial">
+        <Stack.Group
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="Initial" component={InitialScreen} />
+        </Stack.Group>
+        <Stack.Group
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="Login" component={LoginScreen} />
+        </Stack.Group>
+        <Stack.Group
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="Home" component={HomeScreen} />
+        </Stack.Group>
+      </Stack.Navigator>
     </NavigationContainer>
   );
 };

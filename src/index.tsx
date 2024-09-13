@@ -1,16 +1,20 @@
-import { NavigationContainer } from '@react-navigation/native';
 import { createTheme, ThemeProvider } from '@rneui/themed';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import RootStackNavigation from './navigation/rootStackNavigation';
 
 const theme = createTheme({
   lightColors: {
-    primary: '#e7e7e8',
+    primary: 'red',
     background: '#fff',
   },
   darkColors: {
-    primary: '#000',
+    primary: 'blue',
     background: '#121212',
+  },
+  components: {
+    Button: {
+      color: 'primary',
+    },
   },
 });
 
@@ -18,9 +22,7 @@ const App = () => {
   return (
     <SafeAreaProvider>
       <ThemeProvider theme={theme}>
-        <NavigationContainer>
-          <RootStackNavigation />
-        </NavigationContainer>
+        <RootStackNavigation />
       </ThemeProvider>
     </SafeAreaProvider>
   );

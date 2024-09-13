@@ -1,13 +1,12 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Button, Text, useTheme, useThemeMode } from '@rneui/themed';
+import { Button, Text, useTheme } from '@rneui/themed';
 import { View } from 'react-native';
-import { RootStackParamList } from '../navigation/rootStackNavigation';
+import { RootStackParamList } from '../../navigation/rootStackNavigation';
 
 const LoginScreen = ({
   navigation,
-}: NativeStackScreenProps<RootStackParamList, 'Login', 'Auth'>) => {
+}: NativeStackScreenProps<RootStackParamList>) => {
   const { theme } = useTheme();
-  const { mode, setMode } = useThemeMode();
 
   return (
     <View
@@ -19,14 +18,8 @@ const LoginScreen = ({
       }}
     >
       <Text>Login Screen</Text>
-      <Button
-        onPress={() => {
-          setMode(mode === 'light' ? 'dark' : 'light');
-          navigation.navigate('Home');
-        }}
-      >
-        Button
-      </Button>
+      <Button onPress={() => navigation.navigate('Initial')}>GO INITIAL</Button>
+      <Button onPress={() => navigation.navigate('Home')}>GO HOME</Button>
     </View>
   );
 };
