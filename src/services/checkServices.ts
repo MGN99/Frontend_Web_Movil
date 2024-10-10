@@ -1,6 +1,7 @@
 import { BaseRouter } from "@react-navigation/native";
 import axios from "axios";
 import { EXPO_PUBLIC_MS_AUTH } from '@env';
+import {Alert } from 'react-native';
 
 
 export type CheckResponseT = boolean;
@@ -10,7 +11,7 @@ export const checkService = async(
 ):Promise<CheckResponseT> =>{
     try {
         console.debug(accessToken)
-        const url = `${EXPO_PUBLIC_MS_AUTH}/check-access-token`;
+        const url = `http://192.168.1.89:3000/auth/check-access-token`;
         console.debug(url);
         await axios.get(
             url,
@@ -19,6 +20,7 @@ export const checkService = async(
 
             }
         );
+        console.debug("es V")
 
         return true;
         }catch (e){
@@ -26,4 +28,16 @@ export const checkService = async(
             return false;
         }
 
+};
+
+export const refreshTokenService = async (refreshToken: string) => {
+  try {
+    const response = await axios.post('http://192.168.1.89:3000/auth/renew-access-token', { refreshToken });
+    return response.data; // Devuelve los nuevos tokens { accessToken, refreshToken }
+  } catch (error) {
+    Alert.alert('Sesión expirada!');
+
+
+    return null;
+  }
 };

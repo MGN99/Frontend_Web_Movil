@@ -4,15 +4,16 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/rootStackNavigation';
 
 import useSessionStore from '../stores/useSessionStore'; // Ajusta la ruta del store
-import { checkService } from '../services/checkServices'; // Ajusta la ruta del servicio
+import { checkService, refreshTokenService } from '../services/checkServices'; // Servicio para verificar y refrescar tokens
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Initial'>;
 
 const InitialScreen: React.FC<Props> = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { accessToken } = useSessionStore(); // Obtener el accessToken del store
+  const { accessToken, refreshToken, setAccessToken, setRefreshToken } = useSessionStore(); // Obtener tokens del store
 
   useEffect(() => {
+      console.log("entro a la animación")
     // Animación de desvanecimiento para el texto
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -21,12 +22,41 @@ const InitialScreen: React.FC<Props> = ({ navigation }) => {
     }).start();
 
     const validateToken = async () => {
-      const isValid = await checkService(accessToken); // Verificación del token
-      navigation.replace(isValid ? 'Home' : 'Login'); // Redirigir según el resultado
+      if (!accessToken) {
+          console.log("entro al login", accessToken)
+        // Si no hay accessToken, redirigir al Login
+        navigation.replace('Login');
+        return;
+      }
+
+      const isValid = await checkService(accessToken);
+      if(isValid){
+          navigation.replace('Home');
+          return;
+      }
+
+      if (!isValid && refreshToken) {
+        // Intentar refrescar el token si accessToken es inválido y hay refreshToken
+        try {
+          const newTokens = await refreshTokenService(refreshToken);
+          if (newTokens) {
+            console.log("nuevo token:", newTokens.accessToken)
+            setAccessToken(newTokens.accessToken);
+
+            navigation.replace('Home');
+            return;
+          }
+        } catch (error) {
+          console.error('Error al refrescar tokens:', error);
+        }
+      }
+      // Si no se puede refrescar, redirigir al Login
+      navigation.replace('Login');
+
     };
 
     validateToken(); // Ejecutar validación del token al iniciar la pantalla
-  }, [fadeAnim, accessToken, navigation]);
+  }, [fadeAnim, accessToken, refreshToken, setAccessToken, setRefreshToken, navigation]);
 
   return (
     <View style={styles.container}>
@@ -37,7 +67,7 @@ const InitialScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Spinner de carga */}
       <ActivityIndicator size="large" color="#007bff" style={styles.spinner} />
-      
+
       {/* Texto opcional */}
       <Text style={styles.loadingText}>Cargando...</Text>
     </View>

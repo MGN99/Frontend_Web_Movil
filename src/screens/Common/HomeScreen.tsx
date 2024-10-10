@@ -1,17 +1,43 @@
 import React from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button, Text } from '@rneui/themed';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { RootStackParamList } from '../../navigation/rootStackNavigation';
 import useUserStore from '../../stores/useUserStore'; // Asegúrate de ajustar la ruta
 import useSessionStore from '../../stores/useSessionStore'; // Asegúrate de ajustar la ruta
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = ({
   navigation,
 }: NativeStackScreenProps<RootStackParamList>) => {
-  // Obtener el email del userStore y los tokens del sessionStore
   const { email } = useUserStore();
-  const { accessToken, refreshToken } = useSessionStore();
+  const { accessToken, refreshToken, setAccessToken, setRefreshToken } = useSessionStore();
+
+  const handleLogout = async () => {
+    try {
+      // Eliminar el token del AsyncStorage
+      await AsyncStorage.removeItem('sessionStore'); // Cambia a sessionStore
+
+      // Limpia los tokens en el store
+      setAccessToken('');
+      setRefreshToken('');
+
+      // Verificación de depuración
+      const tokenAfterRemoval = await AsyncStorage.getItem('sessionStore');
+      console.log('Token después de remover (debería ser null):', tokenAfterRemoval);
+
+      // Verificación del estado del store
+      const currentAccessToken = useSessionStore.getState().accessToken;
+      const currentRefreshToken = useSessionStore.getState().refreshToken;
+      console.log('AccessToken después de logout:', currentAccessToken);
+      console.log('RefreshToken después de logout:', currentRefreshToken);
+
+      // Navegar a la pantalla de Login
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -28,8 +54,8 @@ const HomeScreen = ({
 
       <View style={styles.buttonContainer}>
         <Button
-          title="Login"
-          onPress={() => navigation.navigate('Login')}
+          title="Logout"
+          onPress={handleLogout}
           buttonStyle={styles.button}
           titleStyle={styles.buttonTitle}
         />
@@ -49,13 +75,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5', // Fondo suave
+    backgroundColor: '#F5F5F5',
     paddingHorizontal: 20,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#333', // Color suave y elegante
+    color: '#333',
     marginBottom: 10,
   },
   subtitle: {
@@ -90,7 +116,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   button: {
-    backgroundColor: '#4CAF50', // Botones con colores suaves y atractivos
+    backgroundColor: '#4CAF50',
     borderRadius: 30,
     paddingVertical: 15,
     marginBottom: 20,

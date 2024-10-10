@@ -33,6 +33,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       const { accessToken, refreshToken } = response.data;
       setAccessToken(accessToken);
       setRefreshToken(refreshToken);
+      setEmail(email);
 
       // Configura Axios para incluir el access token en las solicitudes
       axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
@@ -42,7 +43,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate("Home");
     } catch (error: any) {
       // Manejo de errores
-      const errorMessage = error.response?.data?.message || 'Credenciales incorrectas, vuelva a intentarlo';
+      const errorMessage = error.response?.data?.message[0];
       Alert.alert('Error', errorMessage);
       console.error('Error en la petición de login:', error);
     } finally {
@@ -69,8 +70,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         containerStyle={styles.input}
         inputContainerStyle={styles.inputContainer}
       />
-      {/* Mostrar el valor de email ingresado */}
-      <Text style={styles.textValue}>Email ingresado: {email}</Text>
 
       {/* Input para contraseña */}
       <Input
@@ -82,14 +81,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         containerStyle={styles.input}
         inputContainerStyle={styles.inputContainer}
       />
-      {/* Mostrar el valor de password ingresado */}
-      <Text style={styles.textValue}>Contraseña ingresada: {password}</Text>
 
       {/* Botón de Login */}
       <Button
         title="Iniciar Sesión"
         onPress={handleLogin}
         loading={loading} // Muestra un spinner cuando está cargando
+        disabled={loading} // Deshabilita el botón si está cargando
         containerStyle={styles.buttonContainer}
         buttonStyle={styles.button}
       />
