@@ -24,7 +24,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true); // Muestra el estado de carga mientras se realiza la petición
 
     try {
-      const response = await axios.post('http://192.168.1.89:3000/auth/signin', {
+      const response = await axios.post('http://192.168.1.85:3000/auth/signin', {
         email,
         password,
       });
