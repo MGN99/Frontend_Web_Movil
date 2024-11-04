@@ -6,7 +6,9 @@ import InitialScreen from '../screens/InitialScreen';
 import QuestionnaireListScreen from '../Questionnaire/QuestionnaireListScreen';
 import Profile from '../screens/Common/Profile';
 import QuestionnaireDetailScreen from '../Questionnaire/QuestionnaireDetailScreen';
-import { Questionnaire } from '../types/QuestionnaireTypes';
+import { Questionnaire,Section } from '../types/QuestionnaireTypes';
+import SectionScreen from '../Questionnaire/SectionScreen';
+
 
 export type RootStackParamList = {
   Initial: undefined;  // Aquí se especifica que no hay parámetros
@@ -15,6 +17,7 @@ export type RootStackParamList = {
   QuestionnaireList: undefined; // Asegúrate de que esté aquí
   Profile:undefined;
   QuestionnaireDetailScreen: { questionnaire: Questionnaire };
+  SectionScreen: { section: Section };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,6 +32,7 @@ const RootStackNavigation = () => {
         <Stack.Screen name="QuestionnaireList" component={QuestionnaireListScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Profile" component={Profile} options={{ headerShown: false }} />
         <Stack.Screen name="QuestionnaireDetailScreen" component={QuestionnaireDetailScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="SectionScreen" component={SectionScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

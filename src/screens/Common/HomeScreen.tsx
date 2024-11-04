@@ -38,10 +38,13 @@ const HomeScreen = ({
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('sessionStore');
-      setAccessToken('');
+      await AsyncStorage.removeItem('sessionStore'); // Borra el almacenamiento de AsyncStorage
+      setAccessToken(''); // Limpia el estado de los tokens en el store
       setRefreshToken('');
-      navigation.navigate('Login');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }], // Resetea el stack de navegación
+      });
     } catch (error) {
       console.error('Error logging out:', error);
     }

@@ -20,36 +20,36 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', 'Por favor, ingrese email y contraseña');
       return;
     }
-
-    setLoading(true); // Muestra el estado de carga mientras se realiza la petición
-
+  
+    setLoading(true);
+  
     try {
-      const response = await axios.post('http://192.168.1.85:3000/auth/signin', {
+      const response = await axios.post('http://192.168.208.1:3000/auth/signin', {
         email,
         password,
       });
-
-      // Almacenar los tokens en el store
+  
       const { accessToken, refreshToken } = response.data;
       setAccessToken(accessToken);
       setRefreshToken(refreshToken);
       setEmail(email);
-
-      // Configura Axios para incluir el access token en las solicitudes
+      
+  
       axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-
-      // Si el login es exitoso, realiza la navegación
+  
       console.log('Login exitoso:', response.data);
-      navigation.navigate("Home");
+      
+      // Usa replace para evitar volver a la pantalla de login
+      navigation.replace("Home");
     } catch (error: any) {
-      // Manejo de errores
       const errorMessage = error.response?.data?.message[0];
       Alert.alert('Error', errorMessage);
       console.error('Error en la petición de login:', error);
     } finally {
-      setLoading(false); // Termina el estado de carga
+      setLoading(false);
     }
   };
+  
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>

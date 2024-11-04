@@ -11,16 +11,18 @@ export const checkService = async(
 ):Promise<CheckResponseT> =>{
     try {
         console.debug(accessToken)
-        const url = `http://192.168.1.85:3000/auth/check-access-token`;
+        const url = `http://192.168.208.1:3000/auth/check-access-token`;
         console.debug(url);
-        await axios.get(
+        
+        const response = await axios.get(
             url,
             {
                 headers: {Authorization: `Bearer ${accessToken}` },
 
             }
         );
-        console.debug("es V")
+
+        console.log("Payload: ",response.data);
 
         return true;
         }catch (e){
@@ -32,7 +34,7 @@ export const checkService = async(
 
 export const refreshTokenService = async (refreshToken: string) => {
   try {
-    const response = await axios.post('http://192.168.1.85:3000/auth/renew-access-token', { refreshToken });
+    const response = await axios.post('http://192.168.208.1:3000/auth/renew-access-token', { refreshToken });
     return response.data; // Devuelve los nuevos tokens { accessToken, refreshToken }
   } catch (error) {
     Alert.alert('Sesión expirada!');

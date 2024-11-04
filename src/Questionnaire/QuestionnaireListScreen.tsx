@@ -26,7 +26,7 @@ const QuestionnaireListScreen = () => {
             setError('Error fetching questionnaires');
         } finally {
             setLoading(false);
-            setRefreshing(false); // Stop the refresh animation
+            setRefreshing(false); 
         }
     };
 
@@ -36,7 +36,7 @@ const QuestionnaireListScreen = () => {
 
     const handleRefresh = () => {
         setRefreshing(true);
-        fetchQuestionnaires(); // Re-fetch the data
+        fetchQuestionnaires(); 
     };
 
     const handlePress = (questionnaire: Questionnaire) => {
@@ -58,7 +58,7 @@ const QuestionnaireListScreen = () => {
                 <RefreshControl
                     refreshing={refreshing}
                     onRefresh={handleRefresh}
-                    colors={['#0000ff']} // Customize pull-to-refresh color
+                    colors={['#0000ff']} 
                 />
             }
         >
