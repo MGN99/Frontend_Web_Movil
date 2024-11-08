@@ -1,7 +1,7 @@
 import axios from "axios";
 import useUserStore from "../stores/useUserStore";
 
-const API_URL = "http://192.168.1.142:3000/user"; // Asegúrate de poner la URL correcta de tu backend
+const API_URL = "http://10.39.53.30:3000/user"; // Asegúrate de poner la URL correcta de tu backend
 
 export const getUserInfo = async () => {
   const { email } = useUserStore.getState(); // Obtenemos el email almacenado en el store

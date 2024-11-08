@@ -12,6 +12,10 @@ import useSessionStore from "../stores/useSessionStore"; // Ajusta la ruta si es
 import axios from "axios";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/rootStackNavigation"; // Ajusta la ruta según tu estructura de carpetas
+import { MACHINES_AREA_ENDPOINT, URL_MSIAM } from "../types/constants";
+
+//const URL_MSIAM = `http://${IP_ADDRESS}:${PORT_MS_IAM}}`
+//const MACHINES_AREA_ENDPOINT = '/machine/machines/area'
 
 const MachineListScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -46,7 +50,7 @@ const MachineListScreen: React.FC = () => {
   const fetchMachinesByAreaId = async () => {
     try {
       const response = await axios.get(
-        "http://192.168.1.142:3001/machine/machines/area",
+        URL_MSIAM + MACHINES_AREA_ENDPOINT,
         {
           headers: { Authorization: `Bearer ${accessToken}` },
         }

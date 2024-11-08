@@ -6,10 +6,15 @@ import { RootStackParamList } from "../../navigation/rootStackNavigation";
 import axios from "axios";
 import useUserStore from "../../stores/useUserStore"; // Asegúrate de ajustar la ruta
 import useSessionStore from "../../stores/useSessionStore"; // Asegúrate de ajustar la ruta
+import { SIGNIN_ENDOPOINT, URL_AUTH } from "../../types/constants";
+
+// const URL_AUTH=`http://${IP_ADDRESS}:${PORT_MS_AUTH}`
+
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  
   const { theme } = useTheme();
   const { email, password, setEmail, setPassword } = useUserStore();
   const { setAccessToken, setRefreshToken } = useSessionStore();
@@ -24,8 +29,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
 
     try {
+      console.log("xd",URL_AUTH);
       const response = await axios.post(
-        "http://192.168.1.142:3000/auth/signin",
+        URL_AUTH + SIGNIN_ENDOPOINT,
         {
           email,
           password,

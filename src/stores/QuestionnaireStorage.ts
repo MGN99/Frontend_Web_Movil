@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Section } from 'react-native-paper/lib/typescript/components/List/List';
 
 const QUESTIONNAIRE_KEY = 'questionnaire_storage';
 
@@ -30,8 +29,7 @@ const loadQuestionnaireFromStorage = async () => {
   return data ? JSON.parse(data) : null;
 };
 
-// Guardar una respuesta para una pregunta específica
-// Guardar una respuesta para una pregunta específica
+
 const saveAnswer = async (sectionId: string, questionId: string, answer: string) => {
     const questionnaire = await loadQuestionnaireFromStorage();
     if (!questionnaire) {
