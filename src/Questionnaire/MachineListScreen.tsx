@@ -6,24 +6,35 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Alert,
+  Image,
 } from "react-native";
-import { getUserInfo } from "../services/UserService"; // Ajusta la ruta si es necesario
-import useSessionStore from "../stores/useSessionStore"; // Ajusta la ruta si es necesario
+import { AntDesign } from "@expo/vector-icons";
+import { getUserInfo } from "../services/UserService";
+import useSessionStore from "../stores/useSessionStore";
 import axios from "axios";
+import * as FileSystem from "expo-file-system";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
-import { RootStackParamList } from "../navigation/rootStackNavigation"; // Ajusta la ruta según tu estructura de carpetas
-import { MACHINES_AREA_ENDPOINT, URL_MSIAM } from "../types/constants";
-
-//const URL_MSIAM = `http://${IP_ADDRESS}:${PORT_MS_IAM}}`
-//const MACHINES_AREA_ENDPOINT = '/machine/machines/area'
+import * as ImagePicker from "expo-image-picker";
+import { RootStackParamList } from "../navigation/rootStackNavigation";
+import {
+  MACHINES_AREA_ENDPOINT,
+  MS_QUESTIONNAIRE_URL,
+  URL_MSIAM,
+} from "../types/constants";
+import {
+  loadQuestionnaireFromStorage,
+  updateQuestionnaireWithDetails,
+} from "../stores/QuestionnaireStorage";
 
 const MachineListScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [areaId, setAreaId] = useState<string | null>(null);
   const [machines, setMachines] = useState<any[]>([]);
-  const [selectedMachines, setSelectedMachines] = useState<string[]>([]);
+  const [selectedMachine, setSelectedMachine] = useState<string | null>(null);
+  const [images, setImages] = useState<any[]>([]);
+  const [uploadedImageIds, setUploadedImageIds] = useState<string[]>([]);
   const { accessToken } = useSessionStore((state) => state);
-
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   useEffect(() => {
@@ -32,10 +43,7 @@ const MachineListScreen: React.FC = () => {
         const userInfo = await getUserInfo();
         if (userInfo && userInfo.areaId) {
           setAreaId(userInfo.areaId);
-          console.log("Fetched Area ID:", userInfo.areaId);
           await fetchMachinesByAreaId();
-        } else {
-          console.error("No areaId found in user info");
         }
       } catch (error) {
         console.error("Error fetching user info:", error);
@@ -49,103 +57,230 @@ const MachineListScreen: React.FC = () => {
 
   const fetchMachinesByAreaId = async () => {
     try {
-      const response = await axios.get(
-        URL_MSIAM + MACHINES_AREA_ENDPOINT,
-        {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
+      const response = await axios.get(URL_MSIAM + MACHINES_AREA_ENDPOINT, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       setMachines(response.data);
-      console.log("Fetched Machines:", response.data);
     } catch (error) {
       console.error("Error fetching machines:", error);
     }
   };
 
   const handleSelectMachine = (machinePatente: string) => {
-    setSelectedMachines((prevSelected) =>
-      prevSelected.includes(machinePatente)
-        ? prevSelected.filter((patente) => patente !== machinePatente)
-        : [...prevSelected, machinePatente]
+    setSelectedMachine((prevSelected) =>
+      prevSelected === machinePatente ? null : machinePatente
     );
   };
 
-  const handleCompleteQuestionnaire = () => {
-    if (selectedMachines.length > 0) {
-      navigation.navigate("QuestionnaireList");
+  const createQuestionnaire = async () => {
+    try {
+      const questionnaire = await loadQuestionnaireFromStorage();
+      if (!questionnaire) {
+        console.error("No questionnaire data found in storage.");
+        return;
+      }
+      console.log("Cuestionario completo:", JSON.stringify(questionnaire, null, 2));
+
+      // Post request to create a new questionnaire
+      const response = await axios.post(
+        `${MS_QUESTIONNAIRE_URL}/questionnaire`,
+        questionnaire,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        Alert.alert("Cuestionario Creado", "El cuestionario ha sido enviado correctamente.");
+        navigation.navigate("QuestionnaireList");
+      }
+    } catch (error) {
+      console.error("Error creating questionnaire:", error);
+      Alert.alert("Error", "Ocurrió un problema al crear el cuestionario.");
     }
   };
 
-  if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
-  }
+  const handleCompleteQuestionnaire = async () => {
+    if (selectedMachine && images.length > 0) {
+      try {
+        const imageIds: string[] = [];
+
+        await Promise.all(
+          images.map(async (image) => {
+            const createPhotoUploadDto = {
+              base64Photo: image.base64,
+              filenameOriginal: image.fileName + ".png",
+              mimeType: image.mimeType,
+            };
+
+            const response = await axios.post(
+              `${MS_QUESTIONNAIRE_URL}/photo-upload`,
+              createPhotoUploadDto,
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+            console.log(response.status);
+            if (response.status === 201) {
+              const imageId = response.data._id;
+
+              
+              imageIds.push(imageId);
+
+            }
+          })
+        );
+        console.log("iamgesids",imageIds);
+        setUploadedImageIds(imageIds);
+
+        const userInfo = await getUserInfo();
+        const userId = userInfo ? userInfo._id : null;
+
+        if (!userId) {
+          console.error("User ID not available.");
+          return;
+        }
+
+        await updateQuestionnaireWithDetails(userId, selectedMachine, imageIds);
+        
+        // Now that the questionnaire is complete, create it on the server
+        await createQuestionnaire();
+        
+      } catch (error) {
+        console.error("Error completing questionnaire:", error);
+        Alert.alert("Error", "Ocurrió un problema al completar el cuestionario.");
+      }
+    } else {
+      Alert.alert("Error", "Por favor, selecciona una máquina y añade imágenes.");
+    }
+  };
+
+  const handleImagePick = async () => {
+    Alert.alert("Seleccionar Imagen", "Elige una opción:", [
+      {
+        text: "Cámara",
+        onPress: openCamera,
+      },
+      {
+        text: "Galería",
+        onPress: openGallery,
+      },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+    ]);
+  };
+
+  const openCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permiso para acceder a la cámara es necesario!");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImages((prevImages) => [...prevImages, result.assets[0]]);
+      Alert.alert("Imagen tomada", "La imagen ha sido seleccionada.");
+    }
+  };
+
+  const openGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      alert("Permiso para acceder a los archivos es necesario!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: false,
+      quality: 1,
+      selectionLimit: 0,
+    });
+
+    if (!result.canceled) {
+      const imagesWithBase64 = await Promise.all(
+        result.assets.map(async (asset) => {
+          const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          return {
+            ...asset,
+            base64,
+          };
+        })
+      );
+
+      setImages((prevImages) => [...prevImages, ...imagesWithBase64]);
+      Alert.alert(
+        "Imágenes seleccionadas",
+        `${result.assets.length} imágenes han sido seleccionadas.`
+      );
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prevImages) => prevImages.filter((_, i) => i !== index));
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Machine List</Text>
-      {areaId ? (
-        <Text style={styles.areaIdText}>Area ID: {areaId}</Text>
+      <Text style={styles.title}>Máquinas</Text>
+      {loading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
       ) : (
-        <Text>No Area ID available</Text>
-      )}
-      {machines.length > 0 ? (
         <FlatList
           data={machines}
-          keyExtractor={(machine) => machine.patente}
+          keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => handleSelectMachine(item.patente)}
+              onPress={() => handleSelectMachine(item._id)}
               style={[
                 styles.machineItem,
-                selectedMachines.includes(item.patente) &&
-                  styles.selectedMachineItem,
+                selectedMachine === item._id && styles.selectedMachine,
               ]}
             >
-              <Text
-                style={[
-                  styles.machineText,
-                  selectedMachines.includes(item.patente) &&
-                    styles.selectedMachineText,
-                ]}
-              >
-                <Text style={styles.attributeLabel}>Name: </Text>
-                {item.name}
-              </Text>
-              <Text
-                style={[
-                  styles.machineText,
-                  selectedMachines.includes(item.patente) &&
-                    styles.selectedMachineText,
-                ]}
-              >
-                <Text style={styles.attributeLabel}>Model: </Text>
-                {item.modelo}
-              </Text>
-              <Text
-                style={[
-                  styles.machineText,
-                  selectedMachines.includes(item.patente) &&
-                    styles.selectedMachineText,
-                ]}
-              >
-                <Text style={styles.attributeLabel}>Patente: </Text>
-                {item.patente}
-              </Text>
+              <Text style={styles.machineText}>{item.name}</Text>
             </TouchableOpacity>
           )}
         />
-      ) : (
-        <Text>No machines available for this area.</Text>
+      )}
+      <TouchableOpacity style={styles.imageButton} onPress={handleImagePick}>
+        <Text style={styles.imageButtonText}>Seleccionar Imagen(es)</Text>
+      </TouchableOpacity>
+      {images.length > 0 && (
+        <View style={styles.imagePreviewContainer}>
+          {images.map((image, index) => (
+            <View key={index} style={styles.imageWrapper}>
+              <Image source={{ uri: image.uri }} style={styles.imagePreview} />
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => removeImage(index)}
+              >
+                <AntDesign name="closecircle" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
       )}
       <TouchableOpacity
-        style={[
-          styles.button,
-          { backgroundColor: selectedMachines.length > 0 ? "#388e3c" : "#ccc" },
-        ]}
+        style={styles.completeButton}
         onPress={handleCompleteQuestionnaire}
-        disabled={selectedMachines.length === 0} // Deshabilitar si no hay máquinas seleccionadas
+        disabled={!selectedMachine}
       >
-        <Text style={styles.buttonText}>Completar Cuestionario</Text>
+        <Text style={styles.completeButtonText}>Completar Cuestionario</Text>
       </TouchableOpacity>
     </View>
   );
@@ -154,49 +289,70 @@ const MachineListScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#F5F5F5",
+    padding: 16,
+    backgroundColor: "#fff",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-  },
-  areaIdText: {
-    fontSize: 18,
-    marginTop: 10,
+    marginBottom: 20,
   },
   machineItem: {
-    padding: 10,
-    marginTop: 5,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    backgroundColor: "#fff",
+    padding: 16,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  selectedMachineItem: {
-    backgroundColor: "#c8e6c9", // Color de fondo verde para máquinas seleccionadas
+  selectedMachine: {
+    backgroundColor: "#4CAF50",
   },
   machineText: {
-    fontSize: 16,
+    fontSize: 18,
   },
-  selectedMachineText: {
-    fontWeight: "bold",
-    color: "#388e3c", // Color verde para el texto de las máquinas seleccionadas
-  },
-  attributeLabel: {
-    fontWeight: "bold", // Hacer que las etiquetas sean más prominentes
-  },
-  button: {
+  imageButton: {
+    backgroundColor: "#4CAF50",
     padding: 10,
-    marginTop: 20,
     borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
+    marginTop: 16,
   },
-  buttonText: {
-    color: "#ffffff",
+  imageButtonText: {
+    color: "#fff",
+    textAlign: "center",
     fontWeight: "bold",
-    fontSize: 16,
+  },
+  imagePreviewContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 16,
+  },
+  imageWrapper: {
+    position: "relative",
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  removeButton: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 50,
+    padding: 4,
+  },
+  completeButton: {
+    backgroundColor: "#2196F3",
+    padding: 12,
+    borderRadius: 5,
+    marginTop: 20,
+  },
+  completeButtonText: {
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "bold",
   },
 });
 

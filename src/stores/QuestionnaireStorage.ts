@@ -4,20 +4,22 @@ const QUESTIONNAIRE_KEY = 'questionnaire_storage';
 
 // Guardar cuestionario con respuestas iniciales vacías
 const saveQuestionnaireToStorage = async (questionnaire: any) => {
-    const initialState = {
-      ...questionnaire,
-      sections: questionnaire.sections.map((section: any) => ({
-        ...section,
-        questions: section.questions.map((question: any) => {
-          // Log para cada pregunta que se está copiando
-          console.log("Coping Question:", question);
-          return {
-            ...question,
-            answer: null, // No hay respuesta seleccionada inicialmente
-          };
-        }),
+  const initialState = {
+    title: questionnaire.title,
+    sections: questionnaire.sections.map((section: any) => ({
+      title: section.title,
+      questions: section.questions.map((question: any) => ({
+        type: question.type,
+        content: question.content,
+        observation: question.observation,
+        answers: question.answers.map((answer: any) => ({ content: answer.content })),
+        userAnswer: [] // inicializado vacío
       })),
-    };
+    })),
+    isCompleted: false, // inicializa el cuestionario como incompleto
+    photos: []
+  };
+    
   
     console.log("QOriginal:", questionnaire);
     console.log("QCopy:", initialState);
@@ -50,7 +52,12 @@ const saveAnswer = async (sectionId: string, questionId: string, answer: string)
         questions: section.questions.map((question: any) => {
           if (question._id === questionId) {
             console.log('Updating question:', question); // Log the question before updating
-            return { ...question, answer }; // Update answer
+            const updatedUserAnswer = [...question.userAnswer, { content: answer }];
+                return { 
+                ...question, 
+                userAnswer: updatedUserAnswer 
+            }; 
+
           }
           return question;
         }),
@@ -86,6 +93,27 @@ const isQuestionnaireComplete = async () => {
       section.questions.every((question: any) => question.answer !== null)
     );
   };
+
+  const updateQuestionnaireWithDetails = async (userId:string, machineId:string, photoIds:string[]) => {
+    const questionnaire = await loadQuestionnaireFromStorage();
+    if (!questionnaire) {
+        console.log('No questionnaire found in storage.');
+        return;
+    }
+
+    const updatedQuestionnaire = {
+
+        ...questionnaire,
+        userId,
+        machineId,
+        photos: photoIds,
+        isCompleted:true,
+    };
+
+    console.log("Updated Questionnaire with User ID, Machine ID, and Photos:", JSON.stringify(updatedQuestionnaire, null, 2));
+
+    await AsyncStorage.setItem(QUESTIONNAIRE_KEY, JSON.stringify(updatedQuestionnaire));
+};
   
 
 export {
@@ -93,4 +121,6 @@ export {
   loadQuestionnaireFromStorage,
   saveAnswer,
   isQuestionnaireComplete,
+  updateQuestionnaireWithDetails,
+
 };
