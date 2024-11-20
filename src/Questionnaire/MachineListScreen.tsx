@@ -79,9 +79,7 @@ const MachineListScreen: React.FC = () => {
         console.error("No questionnaire data found in storage.");
         return;
       }
-      console.log("Cuestionario completo:", JSON.stringify(questionnaire, null, 2));
 
-      // Post request to create a new questionnaire
       const response = await axios.post(
         `${MS_QUESTIONNAIRE_URL}/questionnaire`,
         questionnaire,
@@ -94,7 +92,10 @@ const MachineListScreen: React.FC = () => {
       );
 
       if (response.status === 201) {
-        Alert.alert("Cuestionario Creado", "El cuestionario ha sido enviado correctamente.");
+        Alert.alert(
+          "Cuestionario Creado",
+          "El cuestionario ha sido enviado correctamente."
+        );
         navigation.navigate("QuestionnaireList");
       }
     } catch (error) {
@@ -104,62 +105,67 @@ const MachineListScreen: React.FC = () => {
   };
 
   const handleCompleteQuestionnaire = async () => {
-    if (selectedMachine && images.length > 0) {
+    if (selectedMachine) {
       try {
         const imageIds: string[] = [];
-
-        await Promise.all(
-          images.map(async (image) => {
-            const createPhotoUploadDto = {
-              base64Photo: image.base64,
-              filenameOriginal: image.fileName + ".png",
-              mimeType: image.mimeType,
-            };
-
-            const response = await axios.post(
-              `${MS_QUESTIONNAIRE_URL}/photo-upload`,
-              createPhotoUploadDto,
-              {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                  "Content-Type": "application/json",
-                },
+  
+        // Si hay imágenes, sube cada una
+        if (images.length > 0) {
+          await Promise.all(
+            images.map(async (image) => {
+              const createPhotoUploadDto = {
+                base64Photo: image.base64,
+                filenameOriginal: image.fileName || "image.jpg",
+                mimeType: image.mimeType || "image/jpeg",
+              };
+  
+              const response = await axios.post(
+                `${MS_QUESTIONNAIRE_URL}/photo-upload`,
+                createPhotoUploadDto,
+                {
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+  
+              if (response.status === 201) {
+                const imageId = response.data._id;
+                imageIds.push(imageId);
               }
-            );
-            console.log(response.status);
-            if (response.status === 201) {
-              const imageId = response.data._id;
-
-              
-              imageIds.push(imageId);
-
-            }
-          })
-        );
-        console.log("iamgesids",imageIds);
-        setUploadedImageIds(imageIds);
-
+            })
+          );
+        }
+  
+        // Si se subieron imágenes, actualiza la información con los IDs de las imágenes
         const userInfo = await getUserInfo();
         const userId = userInfo ? userInfo._id : null;
-
+  
         if (!userId) {
           console.error("User ID not available.");
           return;
         }
-
+  
+        // Si no hay imágenes, pasa un array vacío para no agregar fotos
         await updateQuestionnaireWithDetails(userId, selectedMachine, imageIds);
-        
-        // Now that the questionnaire is complete, create it on the server
-        await createQuestionnaire();
-        
+        await createQuestionnaire(); // Crea el cuestionario
+  
+        // Muestra el éxito
+        Alert.alert(
+          "Cuestionario Creado",
+          "El cuestionario ha sido enviado correctamente."
+        );
+        navigation.navigate("QuestionnaireList");
       } catch (error) {
         console.error("Error completing questionnaire:", error);
         Alert.alert("Error", "Ocurrió un problema al completar el cuestionario.");
       }
     } else {
-      Alert.alert("Error", "Por favor, selecciona una máquina y añade imágenes.");
+      Alert.alert("Error", "Por favor, selecciona una máquina.");
     }
   };
+  
 
   const handleImagePick = async () => {
     Alert.alert("Seleccionar Imagen", "Elige una opción:", [
@@ -192,7 +198,14 @@ const MachineListScreen: React.FC = () => {
     });
 
     if (!result.canceled) {
-      setImages((prevImages) => [...prevImages, result.assets[0]]);
+      const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      setImages((prevImages) => [
+        ...prevImages,
+        { ...result.assets[0], base64 },
+      ]);
       Alert.alert("Imagen tomada", "La imagen ha sido seleccionada.");
     }
   };
@@ -216,10 +229,7 @@ const MachineListScreen: React.FC = () => {
           const base64 = await FileSystem.readAsStringAsync(asset.uri, {
             encoding: FileSystem.EncodingType.Base64,
           });
-          return {
-            ...asset,
-            base64,
-          };
+          return { ...asset, base64 };
         })
       );
 
@@ -282,6 +292,7 @@ const MachineListScreen: React.FC = () => {
       >
         <Text style={styles.completeButtonText}>Completar Cuestionario</Text>
       </TouchableOpacity>
+
     </View>
   );
 };
@@ -295,40 +306,38 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   machineItem: {
-    padding: 16,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: 10,
+    marginVertical: 5,
+    backgroundColor: "#ddd",
+    borderRadius: 5,
   },
   selectedMachine: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#007AFF",
   },
   machineText: {
     fontSize: 18,
   },
   imageButton: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 16,
+    backgroundColor: "#007AFF",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginVertical: 10,
   },
   imageButtonText: {
-    color: "#fff",
-    textAlign: "center",
+    color: "white",
     fontWeight: "bold",
   },
   imagePreviewContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 16,
   },
   imageWrapper: {
     position: "relative",
-    marginRight: 8,
-    marginBottom: 8,
+    margin: 5,
   },
   imagePreview: {
     width: 100,
@@ -339,19 +348,19 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderRadius: 50,
-    padding: 4,
+    backgroundColor: "red",
+    borderRadius: 8,
+    padding: 2,
   },
   completeButton: {
-    backgroundColor: "#2196F3",
+    backgroundColor: "#28a745",
     padding: 12,
-    borderRadius: 5,
-    marginTop: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    marginVertical: 20,
   },
   completeButtonText: {
-    color: "#fff",
-    textAlign: "center",
+    color: "white",
     fontWeight: "bold",
   },
 });

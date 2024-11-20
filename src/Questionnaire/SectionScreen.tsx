@@ -26,8 +26,8 @@ const SectionScreen: React.FC<SectionScreenProps> = ({ route }) => {
       if (questionnaire) {
         const answers = questionnaire.sections.reduce((acc: any, sec: any) => {
           sec.questions.forEach((q: any) => {
-            if (q.answer) {
-              acc[q._id] = q.answer; // Asumiendo que `q.answer` contiene la respuesta
+            if (q.userAnswer && q.userAnswer.length > 0) {
+              acc[q._id] = q.userAnswer[0].content; // Asumiendo que `userAnswer` contiene el contenido
             }
           });
           return acc;
@@ -40,14 +40,21 @@ const SectionScreen: React.FC<SectionScreenProps> = ({ route }) => {
   }, []);
 
   const handleAnswerSelect = async (questionId: string, answerId: string) => {
+    // Encuentra el contenido de la respuesta seleccionada
+    const selectedAnswerContent = section.questions[currentQuestionIndex].answers.find(
+      (answer: any) => answer._id === answerId
+    )?.content;
+
     // Actualiza el estado local para reflejar la respuesta seleccionada
     setSelectedAnswers((prev) => ({
       ...prev,
-      [questionId]: answerId,
+      [questionId]: answerId, // Guarda el contenido en el estado
     }));
 
-    // Guarda la respuesta en AsyncStorage
-    await saveAnswer(section._id, questionId, answerId);
+    // Guarda el contenido de la respuesta en AsyncStorage
+    if (selectedAnswerContent) {
+      await saveAnswer(section._id, questionId, selectedAnswerContent);
+    }
   };
 
   const handleNext = () => {
@@ -71,7 +78,7 @@ const SectionScreen: React.FC<SectionScreenProps> = ({ route }) => {
         <Text style={styles.observationText}>{question.observation}</Text>
         <RadioButton.Group
           onValueChange={(newValue) => handleAnswerSelect(question._id, newValue)}
-          value={selectedAnswers[question._id] || ''} // Usa el estado local para el valor
+          value={selectedAnswers[question._id] || ''} // Usa el contenido guardado como valor
         >
           {question.answers.map((answer) => (
             <View key={answer._id} style={styles.radioItem}>

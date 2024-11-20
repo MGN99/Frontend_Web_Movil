@@ -62,6 +62,9 @@ const HomeScreen = ({
     } else if (option === 'Opción 3') {
       navigation.navigate('Profile');
     }
+    else if (option === 'Opción 4') {
+      navigation.navigate('HistoryUser');
+    }
   };
 
   return (
@@ -91,6 +94,9 @@ const HomeScreen = ({
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigateToOption('Opción 3')}>
               <Text style={styles.optionText}>Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigateToOption('Opción 4')}>
+              <Text style={styles.optionText}>History</Text>
             </TouchableOpacity>
           </View>
         </View>
