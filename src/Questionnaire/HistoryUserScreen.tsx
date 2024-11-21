@@ -9,11 +9,14 @@ import {
 } from "react-native";
 import useSessionStore from "../stores/useSessionStore";
 import axios from "axios";
+import { URL_MSIAM } from "../types/constants";
+import { getUserInfo } from "../services/UserService";
+import MapView, { Marker } from "react-native-maps";
 
 const MS_QUESTIONNAIRE_URL = "http://192.168.1.88:3002";
 const QUESTIONNAIRE_ENDPOINT = "questionnaire";
 const PHOTO_UPLOAD_ENDPOINT = "photo-upload";
-const USER_QUESTIONNAIRES_ENDPOINT="user/questionnaires";
+const USER_QUESTIONNAIRES_ENDPOINT = "user/questionnaires";
 
 interface Questionnaire {
   _id: string;
@@ -23,6 +26,13 @@ interface Questionnaire {
   machineId: string;
   photos: string[];
   sections: Section[];
+  createdAt: string;
+  machineDetails: {
+    patente: string;
+    name: string;
+    modelo: string;
+  };
+  location:{latitude:string,longitude:string};
 }
 
 interface Section {
@@ -37,7 +47,7 @@ interface Question {
   observation: string;
   type: string;
   answers: Answer[];
-  userAnswer: Answer[]; // Aquí estarán las respuestas seleccionadas
+  userAnswer: Answer[];
 }
 
 interface Answer {
@@ -48,15 +58,53 @@ interface Answer {
 }
 
 interface Photo {
-    base64Photo: string;
-    mimeType: string;
-  }
+  base64Photo: string;
+  mimeType: string;
+}
 
 const HistoryUserScreen = () => {
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
   const [loading, setLoading] = useState(true);
   const [photoCache, setPhotoCache] = useState<Record<string, string>>({});
   const { accessToken } = useSessionStore((state) => state);
+  const [userInfo, setUserInfo] = useState<any | null>(null);
+
+  const fetchMachineDetails = async (machineId: string) => {
+    try {
+      const response = await axios.get(`${URL_MSIAM}/machine/${machineId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const machine = response.data;
+
+      return {
+        patente: machine.patente || "Desconocida",
+        name: machine.name || "Desconocido",
+        modelo: machine.modelo || "Desconocido",
+      };
+    } catch (error) {
+      console.error(
+        `Error fetching machine details for ID: ${machineId}`,
+        error
+      );
+      return {
+        patente: "Desconocida",
+        name: "Desconocido",
+        modelo: "Desconocido",
+      };
+    }
+  };
+
+  const fetchUserInfo = async () => {
+    try {
+      const user = await getUserInfo(); // Obtener la información del usuario
+      setUserInfo(user); // Almacenar la información del usuario en el estado
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    }
+  };
 
   const fetchUserHistory = async () => {
     try {
@@ -76,22 +124,37 @@ const HistoryUserScreen = () => {
         return;
       }
 
-      // Validar y mapear los datos
-      const mappedQuestionnaires = data.map((item: any): Questionnaire => ({
-        _id: item._id || "",
-        title: item.title || "Sin título",
-        isCompleted: item.isCompleted || false,
-        userId: item.userId || "Desconocido",
-        machineId: item.machineId || "Desconocido",
-        photos: Array.isArray(item.photos) ? item.photos : [],
-        sections: Array.isArray(item.sections) ? item.sections : [],
-      }));
+      const mappedQuestionnaires = await Promise.all(
+        data.map(async (item: any): Promise<Questionnaire> => {
+          const machineDetails = await fetchMachineDetails(item.machineId);
 
-      setQuestionnaires(mappedQuestionnaires);
+          return {
+            _id: item._id || "",
+            title: item.title || "Sin título",
+            isCompleted: item.isCompleted || false,
+            userId: item.userId || "Desconocido",
+            machineId: `${machineDetails.name} ${machineDetails.modelo} ${machineDetails.patente}`,
+            photos: Array.isArray(item.photos) ? item.photos : [],
+            sections: Array.isArray(item.sections) ? item.sections : [],
+            createdAt: item.createdAt || "",
+            machineDetails,
+            location:item.location,
+          };
+        })
+      );
 
-      // Cargar todas las fotos asociadas
-      const photoIds = mappedQuestionnaires.flatMap((q) => q.photos);
+      const sortedQuestionnaires = mappedQuestionnaires.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+
+      setQuestionnaires(sortedQuestionnaires);
+
+      const photoIds = sortedQuestionnaires.flatMap((q) => q.photos);
+      console.log("foto: ",photoIds);
       if (photoIds.length > 0) {
+
         await fetchPhotos(photoIds);
       }
     } catch (error) {
@@ -107,12 +170,11 @@ const HistoryUserScreen = () => {
         const response = await axios.get<Photo>(
           `${MS_QUESTIONNAIRE_URL}/${PHOTO_UPLOAD_ENDPOINT}/${photoId}`
         );
-        
+
         return {
           id: photoId,
           base64: `data:${response.data.mimeType};base64,${response.data.base64Photo}`,
         };
-        
       });
 
       const photoResults = await Promise.all(photoPromises);
@@ -126,7 +188,10 @@ const HistoryUserScreen = () => {
     }
   };
 
+  
+
   useEffect(() => {
+    fetchUserInfo();
     fetchUserHistory();
   }, []);
 
@@ -136,8 +201,31 @@ const HistoryUserScreen = () => {
       <Text style={styles.status}>
         Estado: {item.isCompleted ? "Completado" : "En progreso"}
       </Text>
-      <Text style={styles.detail}>Usuario: {item.userId}</Text>
+      <Text style={styles.detail}>
+        Fecha de creación:{" "}
+        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "N/A"}
+      </Text>
+      <Text style={styles.detail}>Usuario: {userInfo.name}</Text>
       <Text style={styles.detail}>Máquina: {item.machineId}</Text>
+      {item.location && (
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude:Number(item.location.latitude) ,
+          longitude: Number(item.location.longitude),
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
+      >
+        <Marker
+          coordinate={{
+            latitude:Number(item.location.latitude),
+            longitude: Number(item.location.longitude),
+          }}
+          title="Ubicación"
+        />
+      </MapView>
+    )}
       <View style={styles.photoContainer}>
         {item.photos?.map((photoId) => {
           const base64Image = photoCache[photoId];
@@ -165,7 +253,7 @@ const HistoryUserScreen = () => {
                 <Text style={styles.userAnswer}>
                   Respuesta seleccionada:{" "}
                   {question.userAnswer?.length > 0
-                    ? question.userAnswer.map((answer)=> answer.content)// Muestra las respuestas seleccionadas
+                    ? question.userAnswer.map((answer) => answer.content) // Muestra las respuestas seleccionadas
                     : "Sin respuesta"}
                 </Text>
               </View>
@@ -206,6 +294,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+  },
+  map: {
+    width: '100%',
+    height: 200,
+    marginTop: 10,
+    borderRadius: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -261,15 +355,14 @@ const styles = StyleSheet.create({
     color: "#999",
   },
   sectionContainer: {
-    marginTop: 16,
+    marginTop: 12,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 8,
   },
   questionContainer: {
-    marginBottom: 8,
+    marginTop: 8,
   },
   questionContent: {
     fontSize: 14,
@@ -279,9 +372,9 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   userAnswer: {
-    fontSize: 14,
-    color: "#4CAF50",
-    marginTop: 4,
+    fontSize: 12,
+    color: "green",
+    fontWeight: "bold",
   },
 });
 

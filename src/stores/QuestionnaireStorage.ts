@@ -54,7 +54,7 @@ const saveAnswer = async (sectionId: string, questionId: string, answerContent: 
                   console.log('Updating question:', question);
 
                   // Agrega el `answerId` seleccionado al array `userAnswer`
-                  const updatedUserAnswer = [...question.userAnswer, { content: answerContent }];
+                  const updatedUserAnswer = [ { content: answerContent }];
                   return {
                       ...question,
                       userAnswer: updatedUserAnswer,
@@ -95,12 +95,13 @@ const isQuestionnaireComplete = async () => {
     );
   };
 
-  const updateQuestionnaireWithDetails = async (userId:string, machineId:string, photoIds:string[]) => {
+  const updateQuestionnaireWithDetails = async (userId:string, machineId:string, photoIds:string[], location:{ latitude: string; longitude: string }) => {
     const questionnaire = await loadQuestionnaireFromStorage();
     if (!questionnaire) {
         console.log('No questionnaire found in storage.');
         return;
     }
+    console.log("ubicacion: ",location)
       const updatedQuestionnaire ={
         title: questionnaire.title,
         sections: questionnaire.sections.map((section: any) => ({
@@ -117,6 +118,7 @@ const isQuestionnaireComplete = async () => {
         photos: photoIds,
         userId,
         machineId,
+        location,
       };
     /*
     const updatedQuestionnaire = {

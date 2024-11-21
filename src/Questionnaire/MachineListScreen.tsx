@@ -10,6 +10,8 @@ import {
   Image,
 } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
+import * as LocalAuthentication from "expo-local-authentication";
+import * as Location from "expo-location"; // Importación de geolocalización
 import { getUserInfo } from "../services/UserService";
 import useSessionStore from "../stores/useSessionStore";
 import axios from "axios";
@@ -26,6 +28,7 @@ import {
   loadQuestionnaireFromStorage,
   updateQuestionnaireWithDetails,
 } from "../stores/QuestionnaireStorage";
+import { white } from "react-native-paper/lib/typescript/styles/themes/v2/colors";
 
 const MachineListScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -33,7 +36,7 @@ const MachineListScreen: React.FC = () => {
   const [machines, setMachines] = useState<any[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<string | null>(null);
   const [images, setImages] = useState<any[]>([]);
-  const [uploadedImageIds, setUploadedImageIds] = useState<string[]>([]);
+  const [location, setLocation] = useState<{ latitude: string; longitude: string } | null>(null); // Nueva variable para ubicación
   const { accessToken } = useSessionStore((state) => state);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
@@ -53,7 +56,31 @@ const MachineListScreen: React.FC = () => {
     };
 
     fetchUserAreaId();
+    fetchLocation(); // Obtener ubicación al cargar la pantalla
   }, []);
+
+  // Función para obtener la ubicación
+  const fetchLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permiso denegado",
+          "Es necesario otorgar permisos de ubicación para continuar."
+        );
+        return;
+      }
+
+      const currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation({
+        latitude:String(currentLocation.coords.latitude) ,
+        longitude:String(currentLocation.coords.longitude) ,
+      });
+      console.log("Ubicación obtenida:", currentLocation.coords);
+    } catch (error) {
+      console.error("Error al obtener la ubicación:", error);
+    }
+  };
 
   const fetchMachinesByAreaId = async () => {
     try {
@@ -105,67 +132,96 @@ const MachineListScreen: React.FC = () => {
   };
 
   const handleCompleteQuestionnaire = async () => {
-    if (selectedMachine) {
-      try {
-        const imageIds: string[] = [];
-  
-        // Si hay imágenes, sube cada una
-        if (images.length > 0) {
-          await Promise.all(
-            images.map(async (image) => {
-              const createPhotoUploadDto = {
-                base64Photo: image.base64,
-                filenameOriginal: image.fileName || "image.jpg",
-                mimeType: image.mimeType || "image/jpeg",
-              };
-  
-              const response = await axios.post(
-                `${MS_QUESTIONNAIRE_URL}/photo-upload`,
-                createPhotoUploadDto,
-                {
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
-  
-              if (response.status === 201) {
-                const imageId = response.data._id;
-                imageIds.push(imageId);
-              }
-            })
-          );
-        }
-  
-        // Si se subieron imágenes, actualiza la información con los IDs de las imágenes
-        const userInfo = await getUserInfo();
-        const userId = userInfo ? userInfo._id : null;
-  
-        if (!userId) {
-          console.error("User ID not available.");
-          return;
-        }
-  
-        // Si no hay imágenes, pasa un array vacío para no agregar fotos
-        await updateQuestionnaireWithDetails(userId, selectedMachine, imageIds);
-        await createQuestionnaire(); // Crea el cuestionario
-  
-        // Muestra el éxito
-        Alert.alert(
-          "Cuestionario Creado",
-          "El cuestionario ha sido enviado correctamente."
-        );
-        navigation.navigate("QuestionnaireList");
-      } catch (error) {
-        console.error("Error completing questionnaire:", error);
-        Alert.alert("Error", "Ocurrió un problema al completar el cuestionario.");
-      }
-    } else {
+    if (!selectedMachine) {
       Alert.alert("Error", "Por favor, selecciona una máquina.");
+      return;
+    }
+
+    try {
+      // Obtener la ubicación antes de continuar
+      if (!location) {
+        Alert.alert("Ubicación requerida", "Obteniendo ubicación...");
+        await fetchLocation();
+        return;
+      }
+
+      // Verificar compatibilidad con autenticación biométrica
+      const isCompatible = await LocalAuthentication.hasHardwareAsync();
+      if (!isCompatible) {
+        Alert.alert("Error", "Este dispositivo no soporta autenticación biométrica.");
+        return;
+      }
+
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!isEnrolled) {
+        Alert.alert("Error", "No hay huellas registradas en este dispositivo.");
+        return;
+      }
+
+      const authResult = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Autenticación requerida",
+        cancelLabel: "Cancelar",
+        fallbackLabel: "Usar contraseña",
+      });
+
+      if (!authResult.success) {
+        Alert.alert("Error", "Autenticación fallida. Intenta nuevamente.");
+        return;
+      }
+
+      const imageIds: string[] = [];
+      if (images.length > 0) {
+        await Promise.all(
+          images.map(async (image) => {
+            const createPhotoUploadDto = {
+              base64Photo: image.base64,
+              filenameOriginal: image.fileName || "image.jpg",
+              mimeType: image.mimeType || "image/jpeg",
+            };
+
+            const response = await axios.post(
+              `${MS_QUESTIONNAIRE_URL}/photo-upload`,
+              createPhotoUploadDto,
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (response.status === 201) {
+              const imageId = response.data._id;
+              imageIds.push(imageId);
+            }
+          })
+        );
+      }
+
+      const userInfo = await getUserInfo();
+      const userId = userInfo ? userInfo._id : null;
+
+      if (!userId) {
+        console.error("User ID not available.");
+        return;
+      }
+
+      // Añadir la ubicación al cuestionario
+      await updateQuestionnaireWithDetails(
+        userId,
+        selectedMachine,
+        imageIds,
+        location
+      );
+      await createQuestionnaire();
+
+      
+      navigation.navigate("QuestionnaireList");
+    } catch (error) {
+      console.error("Error completing questionnaire:", error);
+      Alert.alert("Error", "Ocurrió un problema al completar el cuestionario.");
     }
   };
-  
 
   const handleImagePick = async () => {
     Alert.alert("Seleccionar Imagen", "Elige una opción:", [
@@ -256,43 +312,45 @@ const MachineListScreen: React.FC = () => {
           keyExtractor={(item) => item._id}
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => handleSelectMachine(item._id)}
               style={[
                 styles.machineItem,
                 selectedMachine === item._id && styles.selectedMachine,
               ]}
+              onPress={() => handleSelectMachine(item._id)}
             >
-              <Text style={styles.machineText}>{item.name}</Text>
+              <Text style={styles.machineText}>{item.patente}</Text>
+              
             </TouchableOpacity>
           )}
         />
       )}
-      <TouchableOpacity style={styles.imageButton} onPress={handleImagePick}>
-        <Text style={styles.imageButtonText}>Seleccionar Imagen(es)</Text>
-      </TouchableOpacity>
-      {images.length > 0 && (
-        <View style={styles.imagePreviewContainer}>
-          {images.map((image, index) => (
-            <View key={index} style={styles.imageWrapper}>
-              <Image source={{ uri: image.uri }} style={styles.imagePreview} />
+      <View>
+        <TouchableOpacity onPress={handleImagePick} style={styles.button}>
+          <Text style={styles.buttonText}>Seleccionar imágenes</Text>
+        </TouchableOpacity>
+        <FlatList
+          data={images}
+          horizontal
+          keyExtractor={(_, index) => index.toString()}
+          renderItem={({ item, index }) => (
+            <View style={styles.imageContainer}>
+              <Image source={{ uri: item.uri }} style={styles.image} />
               <TouchableOpacity
-                style={styles.removeButton}
+                style={styles.removeImageButton}
                 onPress={() => removeImage(index)}
               >
-                <AntDesign name="closecircle" size={20} color="white" />
+                <AntDesign name="closecircle" size={20} color="red" />
               </TouchableOpacity>
             </View>
-          ))}
-        </View>
-      )}
-      <TouchableOpacity
-        style={styles.completeButton}
-        onPress={handleCompleteQuestionnaire}
-        disabled={!selectedMachine}
-      >
-        <Text style={styles.completeButtonText}>Completar Cuestionario</Text>
-      </TouchableOpacity>
-
+          )}
+        />
+        <TouchableOpacity
+          onPress={handleCompleteQuestionnaire}
+          style={styles.completeButton}
+        >
+          <Text style={styles.completeButtonText}>Completar Cuestionario</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -304,6 +362,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   title: {
+    color:"#fff",
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
@@ -363,6 +422,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
+  imageContainer: { position: "relative", marginRight: 10 },
+  image: { width: 100, height: 100, borderRadius: 10 },
+  removeImageButton: { position: "absolute", top: -5, right: -5, backgroundColor: "#fff", borderRadius: 15 },
+  button: { padding: 15, backgroundColor: "#007BFF", borderRadius: 10, alignItems: "center", marginVertical: 10 },
+  buttonText: { color: "#fff", fontSize: 16 },
+  
 });
-
 export default MachineListScreen;

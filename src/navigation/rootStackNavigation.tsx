@@ -11,6 +11,7 @@ import SectionScreen from "../Questionnaire/SectionScreen";
 import MachineListScreen from "../Questionnaire/MachineListScreen";
 import HistoryUserScreen from "../Questionnaire/HistoryUserScreen";
 
+
 export type RootStackParamList = {
   Initial: undefined; // Aquí se especifica que no hay parámetros
   Login: undefined;
@@ -21,6 +22,7 @@ export type RootStackParamList = {
   SectionScreen: { section: Section };
   MachineList: undefined;
   HistoryUser: undefined;
+  BiometricScreen:undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -62,6 +64,8 @@ const RootStackNavigation = () => {
         <Stack.Screen name="SectionScreen" component={SectionScreen} />
         <Stack.Screen name="MachineList" component={MachineListScreen} />
         <Stack.Screen name="HistoryUser" component={HistoryUserScreen} />
+        
+
       </Stack.Navigator>
     </NavigationContainer>
   );
