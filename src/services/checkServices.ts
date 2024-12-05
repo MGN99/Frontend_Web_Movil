@@ -19,7 +19,7 @@ export const checkService = async (
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-    console.log("Payload: ", response.data);
+    
 
     return true;
   } catch (e) {

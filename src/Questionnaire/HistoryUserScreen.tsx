@@ -152,7 +152,7 @@ const HistoryUserScreen = () => {
       setQuestionnaires(sortedQuestionnaires);
 
       const photoIds = sortedQuestionnaires.flatMap((q) => q.photos);
-      console.log("foto: ",photoIds);
+      
       if (photoIds.length > 0) {
 
         await fetchPhotos(photoIds);

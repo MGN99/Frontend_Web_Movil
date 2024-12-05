@@ -20,8 +20,7 @@ const saveQuestionnaireToStorage = async (questionnaire: any) => {
   };
     
   
-    console.log("QOriginal:", questionnaire);
-    console.log("QCopy:", initialState);
+    
     await AsyncStorage.setItem(QUESTIONNAIRE_KEY, JSON.stringify(initialState));
   };
 // Cargar cuestionario del almacenamiento
@@ -35,23 +34,23 @@ const saveAnswer = async (sectionId: string, questionId: string, answerContent: 
   const questionnaire = await loadQuestionnaireFromStorage();
 
   if (!questionnaire) {
-      console.log('No questionnaire found in storage.');
+      
       return;
   }
 
-  console.log('Saving answer:', { sectionId, questionId, answerContent });
+ 
 
   // Encuentra la sección y pregunta específicas
   const updatedSections = questionnaire.sections.map((section: any) => {
       if (section._id !== sectionId) return section;
 
-      console.log('Updating section:', section);
+      
 
       return {
           ...section,
           questions: section.questions.map((question: any) => {
               if (question._id === questionId) {
-                  console.log('Updating question:', question);
+                  
 
                   // Agrega el `answerId` seleccionado al array `userAnswer`
                   const updatedUserAnswer = [ { content: answerContent }];
@@ -67,8 +66,7 @@ const saveAnswer = async (sectionId: string, questionId: string, answerContent: 
   
   const updatedQuestionnaire = { ...questionnaire, sections: updatedSections };
 
-  // Log para verificar el cuestionario actualizado
-  console.log("Updated Questionnaire:", JSON.stringify(updatedQuestionnaire, null, 2));
+  
 
   // Guardar el cuestionario actualizado en AsyncStorage
   await AsyncStorage.setItem(QUESTIONNAIRE_KEY, JSON.stringify(updatedQuestionnaire));
@@ -86,7 +84,7 @@ const isQuestionnaireComplete = async () => {
   
     // Imprimir las preguntas de cada sección
     questionnaire.sections.forEach((section: any) => {
-      console.log(section.questions);
+      
     });
   
     // Comprobar si todas las preguntas han sido respondidas
@@ -98,10 +96,10 @@ const isQuestionnaireComplete = async () => {
   const updateQuestionnaireWithDetails = async (userId:string, machineId:string, photoIds:string[], location:{ latitude: string; longitude: string }) => {
     const questionnaire = await loadQuestionnaireFromStorage();
     if (!questionnaire) {
-        console.log('No questionnaire found in storage.');
+        
         return;
     }
-    console.log("ubicacion: ",location)
+    
       const updatedQuestionnaire ={
         title: questionnaire.title,
         sections: questionnaire.sections.map((section: any) => ({
@@ -131,7 +129,7 @@ const isQuestionnaireComplete = async () => {
 
     };
 */
-    console.log("Updated Questionnaire with User ID, Machine ID, and Photos:", JSON.stringify(updatedQuestionnaire, null, 2));
+    
 
     await AsyncStorage.setItem(QUESTIONNAIRE_KEY, JSON.stringify(updatedQuestionnaire));
 };

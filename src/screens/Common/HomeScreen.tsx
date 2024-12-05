@@ -63,7 +63,7 @@ const HomeScreen = ({
       navigation.navigate('Profile');
     }
     else if (option === 'Opción 4') {
-      navigation.navigate('HistoryUser');
+      navigation.navigate('Historial');
     }
   };
 
@@ -77,26 +77,26 @@ const HomeScreen = ({
         <Icon name="logout" size={30} color="#000" />
       </TouchableOpacity>
 
-      <Text style={styles.title}>Welcome to Home</Text>
-      <Text style={styles.subtitle}>Choose an option to continue</Text>
+      <Text style={styles.title}>Bienvenido al Menú</Text>
+      
 
       {isSidebarVisible && (
         <View style={styles.sidebar}>
           <Text style={styles.welcomeText}>Bienvenido,</Text>
-          <Text style={styles.email}>{loadingUser ? "Loading..." : user?.name  }</Text>
-          <Text style={styles.email}>{loadingUser ? "Loading..." : user?.email }</Text>
+          <Text style={styles.email}>{loadingUser ? "Cargando..." : user?.name  }</Text>
+          <Text style={styles.email}>{loadingUser ? "Cargando..." : user?.email }</Text>
           <View style={styles.optionsContainer}>
             <TouchableOpacity onPress={() => navigateToOption('Opción 1')}>
-              <Text style={styles.optionText}>Home</Text>
+              <Text style={styles.optionText}>Menú</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigateToOption('Opción 2')}>
-              <Text style={styles.optionText}>Questionnaire List</Text>
+              <Text style={styles.optionText}>Lista de Cuestionarios</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigateToOption('Opción 3')}>
-              <Text style={styles.optionText}>Profile</Text>
+              <Text style={styles.optionText}>Perfil</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigateToOption('Opción 4')}>
-              <Text style={styles.optionText}>History</Text>
+              <Text style={styles.optionText}>Historial</Text>
             </TouchableOpacity>
           </View>
         </View>

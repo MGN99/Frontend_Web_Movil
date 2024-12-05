@@ -20,8 +20,8 @@ export type RootStackParamList = {
   Profile: undefined;
   QuestionnaireDetailScreen: { questionnaire: Questionnaire };
   SectionScreen: { section: Section };
-  MachineList: undefined;
-  HistoryUser: undefined;
+  Maquinas: undefined;
+  Historial: undefined;
   BiometricScreen:undefined;
 };
 
@@ -61,9 +61,9 @@ const RootStackNavigation = () => {
           component={QuestionnaireDetailScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen name="SectionScreen" component={SectionScreen} />
-        <Stack.Screen name="MachineList" component={MachineListScreen} />
-        <Stack.Screen name="HistoryUser" component={HistoryUserScreen} />
+        <Stack.Screen name="SectionScreen" component={SectionScreen} options={{title:"Sección"}} />
+        <Stack.Screen name="Maquinas" component={MachineListScreen} />
+        <Stack.Screen name="Historial" component={HistoryUserScreen} />
         
 
       </Stack.Navigator>

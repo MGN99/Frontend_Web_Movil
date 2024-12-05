@@ -48,10 +48,10 @@ const QuestionnaireDetailScreen: React.FC<QuestionnaireDetailScreenProps> = ({
   const checkCompletion = async () => {
     const complete = await isQuestionnaireComplete();
     if (complete) {
-      alert("Questionnaire is complete!");
-      navigation.navigate("MachineList");
+      alert("Cuestionario completado!");
+      navigation.navigate("Maquinas");
     } else {
-      alert("Some questions are still unanswered.");
+      alert("Hay preguntas sin responder");
     }
   };
 
@@ -71,7 +71,7 @@ const QuestionnaireDetailScreen: React.FC<QuestionnaireDetailScreenProps> = ({
       ))}
 
       <TouchableOpacity style={styles.checkButton} onPress={checkCompletion}>
-        <Text style={styles.checkButtonText}>Check Completion</Text>
+        <Text style={styles.checkButtonText}>Completar</Text>
       </TouchableOpacity>
     </ScrollView>
   );

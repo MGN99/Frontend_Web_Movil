@@ -49,7 +49,7 @@ const MachineListScreen: React.FC = () => {
           await fetchMachinesByAreaId();
         }
       } catch (error) {
-        console.error("Error fetching user info:", error);
+        console.error("Error al cargar la información del usuario:", error);
       } finally {
         setLoading(false);
       }
@@ -76,7 +76,7 @@ const MachineListScreen: React.FC = () => {
         latitude:String(currentLocation.coords.latitude) ,
         longitude:String(currentLocation.coords.longitude) ,
       });
-      console.log("Ubicación obtenida:", currentLocation.coords);
+      
     } catch (error) {
       console.error("Error al obtener la ubicación:", error);
     }
@@ -89,7 +89,7 @@ const MachineListScreen: React.FC = () => {
       });
       setMachines(response.data);
     } catch (error) {
-      console.error("Error fetching machines:", error);
+      console.error("Error al cargar máquinas:", error);
     }
   };
 
@@ -101,9 +101,11 @@ const MachineListScreen: React.FC = () => {
 
   const createQuestionnaire = async () => {
     try {
+
       const questionnaire = await loadQuestionnaireFromStorage();
+      
       if (!questionnaire) {
-        console.error("No questionnaire data found in storage.");
+        console.error("Sin información de cuestionarios en el storage.");
         return;
       }
 
@@ -126,7 +128,7 @@ const MachineListScreen: React.FC = () => {
         navigation.navigate("QuestionnaireList");
       }
     } catch (error) {
-      console.error("Error creating questionnaire:", error);
+      console.error("Error al crear el cuestionario:", error);
       Alert.alert("Error", "Ocurrió un problema al crear el cuestionario.");
     }
   };
@@ -178,10 +180,11 @@ const MachineListScreen: React.FC = () => {
               filenameOriginal: image.fileName || "image.jpg",
               mimeType: image.mimeType || "image/jpeg",
             };
-
+            
             const response = await axios.post(
               `${MS_QUESTIONNAIRE_URL}/photo-upload`,
               createPhotoUploadDto,
+
               {
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
@@ -202,7 +205,7 @@ const MachineListScreen: React.FC = () => {
       const userId = userInfo ? userInfo._id : null;
 
       if (!userId) {
-        console.error("User ID not available.");
+        console.error("ID de usuario no disponible.");
         return;
       }
 
@@ -218,7 +221,7 @@ const MachineListScreen: React.FC = () => {
       
       navigation.navigate("QuestionnaireList");
     } catch (error) {
-      console.error("Error completing questionnaire:", error);
+      console.error("Error al completar el cuestionario:", error);
       Alert.alert("Error", "Ocurrió un problema al completar el cuestionario.");
     }
   };
@@ -252,12 +255,12 @@ const MachineListScreen: React.FC = () => {
       aspect: [4, 3],
       quality: 1,
     });
-
+    
     if (!result.canceled) {
       const base64 = await FileSystem.readAsStringAsync(result.assets[0].uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
+      
       setImages((prevImages) => [
         ...prevImages,
         { ...result.assets[0], base64 },
@@ -280,11 +283,14 @@ const MachineListScreen: React.FC = () => {
     });
 
     if (!result.canceled) {
+      
       const imagesWithBase64 = await Promise.all(
         result.assets.map(async (asset) => {
           const base64 = await FileSystem.readAsStringAsync(asset.uri, {
             encoding: FileSystem.EncodingType.Base64,
+
           });
+          
           return { ...asset, base64 };
         })
       );

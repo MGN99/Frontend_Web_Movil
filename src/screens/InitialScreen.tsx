@@ -13,7 +13,7 @@ const InitialScreen: React.FC<Props> = ({ navigation }) => {
   const { accessToken, refreshToken, setAccessToken, setRefreshToken } = useSessionStore(); // Obtener tokens del store
 
   useEffect(() => {
-      console.log("entro a la animación")
+      
     // Animación de desvanecimiento para el texto
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -23,7 +23,7 @@ const InitialScreen: React.FC<Props> = ({ navigation }) => {
 
     const validateToken = async () => {
       if (!accessToken) {
-          console.log("entro al login", accessToken)
+          
         // Si no hay accessToken, redirigir al Login
         navigation.replace('Login');
         return;
@@ -40,7 +40,7 @@ const InitialScreen: React.FC<Props> = ({ navigation }) => {
         try {
           const newTokens = await refreshTokenService(refreshToken);
           if (newTokens) {
-            console.log("nuevo token:", newTokens.accessToken)
+            
             setAccessToken(newTokens.accessToken);
 
             navigation.replace('Home');

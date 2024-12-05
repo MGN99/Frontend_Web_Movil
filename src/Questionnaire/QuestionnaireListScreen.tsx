@@ -5,6 +5,7 @@ import { GetQuestionnaireList } from '../../src/services/GetQuestionnaireList';
 import { Questionnaire } from '../../src/types/QuestionnaireTypes';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/rootStackNavigation';
+import { Ionicons } from '@expo/vector-icons'; // Asegúrate de instalar @expo/vector-icons
 
 type QuestionnaireListScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -43,6 +44,10 @@ const QuestionnaireListScreen = () => {
         navigation.navigate('QuestionnaireDetailScreen', { questionnaire });
     };
 
+    const handleGoBack = () => {
+        navigation.goBack();
+    };
+
     if (loading) {
         return <ActivityIndicator size="large" color="#0000ff" />;
     }
@@ -52,34 +57,62 @@ const QuestionnaireListScreen = () => {
     }
 
     return (
-        <ScrollView
-            contentContainerStyle={styles.container}
-            refreshControl={
-                <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={handleRefresh}
-                    colors={['#0000ff']} 
-                />
-            }
-        >
-            {questionnaires.map((questionnaire) => (
-                <TouchableOpacity 
-                    key={questionnaire._id} 
-                    style={styles.questionnaireCard} 
-                    onPress={() => handlePress(questionnaire)}
-                >
-                    <Text style={styles.title}>{questionnaire.title}</Text>
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={handleGoBack}>
+                    <Ionicons name="arrow-back" size={24} color="black"  />
                 </TouchableOpacity>
-            ))}
-        </ScrollView>
+                <Text style={styles.headerTitle}>Lista de Cuestionarios</Text>
+            </View>
+            <ScrollView
+                contentContainerStyle={styles.contentContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        colors={['#0000ff']}
+                    />
+                }
+            >
+                {questionnaires.map((questionnaire) => (
+                    <TouchableOpacity 
+                        key={questionnaire._id} 
+                        style={styles.questionnaireCard} 
+                        onPress={() => handlePress(questionnaire)}
+                    >
+                        <Text style={styles.title}>{questionnaire.title}</Text>
+                    </TouchableOpacity>
+                ))}
+            </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+
+    
     container: {
+        flex: 1,
+        backgroundColor: '#F5F5F5',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        backgroundColor: '#FFFFFF',
+        elevation: 3,
+        marginTop: 38,
+        
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginLeft: 10,
+        
+    },
+    contentContainer: {
         flexGrow: 1,
         padding: 20,
-        backgroundColor: '#F5F5F5',
     },
     questionnaireCard: {
         backgroundColor: '#FFFFFF',

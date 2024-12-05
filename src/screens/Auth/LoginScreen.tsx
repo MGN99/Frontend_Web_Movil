@@ -29,7 +29,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      console.log("xd",URL_AUTH);
+      
       const response = await axios.post(
         URL_AUTH + SIGNIN_ENDOPOINT,
         {
@@ -45,7 +45,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
       axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
 
-      console.log("Login exitoso:", response.data);
+      
 
       // Usa replace para evitar volver a la pantalla de login
       navigation.replace("Home");
@@ -66,7 +66,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         Bienvenido a
       </Text>
       <Text h1 style={styles.appName}>
-        SIGKILL Question
+        SIGKILL Cuestionarios
       </Text>
 
       {/* Input para email */}

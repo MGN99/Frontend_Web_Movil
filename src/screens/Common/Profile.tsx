@@ -27,7 +27,7 @@ const Profile: React.FC = () => {
   }
 
   if (!user) {
-    return <Text>No user info available</Text>;
+    return <Text>Información no disponible</Text>;
   }
 
   return (
